@@ -1,6 +1,2 @@
-x <- c(1,2,3)
-plot(x)
-
-y <- 4+5
-
-change
+read.table("C:\\Users\\nina-\\Documents\\playground\\Mappe1.csv", sep=",",header=TRUE)
+read.table("C:\\Users\\nina-\\Documents\\playground\\bio_data_forest.csv", sep=" ",header=TRUE)
