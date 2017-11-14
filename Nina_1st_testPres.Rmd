@@ -1,0 +1,43 @@
+---
+title: "My first presentation"
+author: "Nina"
+date: "14 November 2017"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## 1 Basics
+
+ 1.1 Basic intro
+
+If any help is required, check <http://rmarkdown.rstudio.com>.
+
+ 1.2 Second moves
+
+## Some points
+
+>- Satellites
+>- Earth
+>- Observation
+>- Satellites
+
+## Slide with R Output
+
+```{r cars, echo = TRUE}
+summary(cars)
+```
+
+## Slide with Plot
+
+```{r pressure}
+plot(pressure)
+```
+
+## Slide with Plot
+
+´´´
+![](http://medias.planetobserver.fr/wp-content/uploads/2016/01/Europe_PO06302_satellite_image_PlanetSAT.jpg)
+´´´
