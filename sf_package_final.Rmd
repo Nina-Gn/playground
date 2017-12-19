@@ -1,0 +1,516 @@
+---
+title: "Introduction into the R 'sf package'"
+output: ioslides_presentation
+widescreen: yes
+geometry: margin = 1cm
+---
+---
+title: "Introduction into the R 'sf package'"
+output: ioslides_presentation
+widescreen: yes
+geometry: margin = 1cm
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(comment = "", tidy = TRUE)
+```
+
+
+## What is the package about?
+sf = simple features or simple features access
+
+**What are simple features?**
+
+-  feature = real world *thing* (e.g. tree)
+-  set of features can form a single feature ( e.g. forest)
+
+**characteristics of features:**  
+
+- **geometry** (spatial, dimensions: 2D to 4D)
+    * longitude x
+    * latitude y
+    * altitude z
+    * measure m (e.g. time of measurement, error of coordinates)
+- **attributes** (non-spatial) 
+
+
+##
+### **simple feature geometry types**
+- point
+- linestring
+- polygon
+- multipoint
+- multilinestring
+- multipolygon
+- geometrycollection
+- ...
+
+## Organisation of sf in R
+Package sf represents simple features as native R objects  
+(sp: defines new classes)  
+
+-->  simple data structure (three classes exist: sf, sfc, sfg)
+
+-->  attributes and geometry stored in data.frame (geometry in list-column)
+
+-->  all functions and methods in sf that operate on spatial data are prefixed by st_
+  
+- functionality similar to *sp*
+- but no new classes defined, it extends data.frames (**native** classes!)
+
+## Organisation of sf in R
+
+- sf = data.frame containing attributes and feature geometries, it contains sfc:
+- sfc = list column with geometries for each feature record, composed of sfg
+- sfg = the feature geometry of an individual simple feature
+
+## Potential of sf to replace sp
+> sp has so far lacked a complete implementation of simple features
+
+-  simpler data structures
+-  simpler handling of CRS
+-  ability to return distance or area values with proper units (meter, feet or US feet)
+-  support for geosphere functions to compute distances or areas for longitude/latitude data
+
+## Get started with sf
+```{r}
+#install the package
+install.packages("sf", repos="http://cran.rstudio.com/", quiet = TRUE)
+#install development versions
+library(devtools)
+install_github("r-spatial/sf", quiet = TRUE)
+library(sf)
+```
+
+##Example data: North Carolina counties
+```{r}
+#read sf objects with st_read
+nc <- st_read(system.file("shape/nc.shp", package = "sf"))
+class(nc)
+```
+
+##
+```{r, echo = FALSE}
+#plot attribute 1
+plot(nc[1])
+```
+
+
+##
+```{r}
+head(nc)
+```
+
+##
+```{r}
+#access geometry list-column
+nc_geom <- st_geometry(nc)
+
+nc_geom [[1]]
+
+```
+
+
+*sfc* object: simple feature geometry list-column  
+*sfg* object: simple feature geometry --> geometry for a single feature
+
+##
+```{r}
+#attributes of sfc
+attributes(nc_geom)
+```
+
+
+## Some useful commands
+```{r}
+#methods of sf objects
+methods(class = "sf")
+```
+
+##
+```{r}
+#methods for geometry list-columns (sfc)
+methods(class = "sfc")
+```
+
+
+##
+```{r}
+#convert sf object to data.frame
+nc.no_sf <- as.data.frame(nc)
+class(nc.no_sf)
+```
+
+
+## Creating some sf objects
+```{r}
+## MULTIPOINT
+p <- rbind(c(3.2,4), c(3,4.6), c(3.8,4.4), c(3.5,3.8), c(3.4,3.6), c(3.9,4.5))
+(mp <- st_multipoint(p))
+
+## LINESTRING 
+s1 <- rbind(c(0,3),c(0,4),c(1,5),c(2,5))
+(ls <- st_linestring(s1))
+
+## MULTILINESTRING 
+s2 <- rbind(c(0.2,3), c(0.2,4), c(1,4.8), c(2,4.8))
+s3 <- rbind(c(0,4.4), c(0.6,5))
+(mls <- st_multilinestring(list(s1,s2,s3)))
+```
+
+## Creating some sf objects
+```{r}
+## MULTIPOLYGON 
+p1 <- rbind(c(0,0), c(1,0), c(3,2), c(2,4), c(1,4), c(0,0))
+p2 <- rbind(c(1,1), c(1,2), c(2,2), c(1,1))
+pol <-st_polygon(list(p1,p2))
+p3 <- rbind(c(3,0), c(4,0), c(4,1), c(3,1), c(3,0))
+p4 <- rbind(c(3.3,0.3), c(3.8,0.3), c(3.8,0.8), c(3.3,0.8), c(3.3,0.3))[5:1,]
+p5 <- rbind(c(3,3), c(4,2), c(4,3), c(3,3))
+(mpol <- st_multipolygon(list(list(p1,p2), list(p3,p4), list(p5))))
+
+## GEOMETRYCOLLECTION
+(gc <- st_geometrycollection(list(mp, mpol, ls)))
+```
+
+##
+```{r}
+par(mfrow = c(2,3))
+plot(mp, main = "Multipoint"); plot(ls, main = "Linestring"); plot(mls, main = 
+"Multilinestring"); plot(pol, main = "Polygon"); plot(mpol, main = "Multipoygon"); 
+plot(gc, main = "Geometrycollection")
+```
+
+## Reading and writing
+```{r}
+#read sf object with st_read
+filename <-  system.file("shape/nc.shp", package = "sf") #ESRI Shapefile
+file <- st_read(filename, quiet = TRUE)
+
+#write file with st_write
+st_write(nc, "nc.shp", driver = "ESRI Shapefile")
+```
+--> multiple formats possible (also lists with several layers)  
+--> reading and writing directly from and to spatial databases possible
+
+
+
+
+
+# Manipulating simple features geometries
+## Type transformations
+st_cast:   
+- single geometries into multi-geometries or vice versa  
+- geometrycollection into its component (if length = 1)
+```{r}
+p = st_polygon(list(rbind(c(-1,-1), c(1,-1), c(1,1), c(-1,1), c(-1,-1))))
+class(p)
+p_multi <- st_cast(p, "MULTIPOLYGON")
+class(p_multi)
+```
+
+
+##Affine transformations
+f(x) = xA + b
+--> flatten, scale, rotate and translate
+
+```{r, warning = FALSE}
+#rotate 90% clockwise around centroid
+#shrink to 75% of their originial size
+cntrd = st_centroid(nc_geom)
+rot = function(a) matrix(c(cos(a), sin(a), -sin(a), cos(a)),2,2)
+nc_geom2 = (nc_geom - cntrd) *rot(pi/2)* .75 + cntrd
+
+```
+
+##
+```{r, echo = FALSE}
+plot(nc_geom, border = "grey"); plot(nc_geom2, add=TRUE)
+```
+
+## Transformations and conversions
+```{r}
+#CRS transformation
+nc.web_mercator <- st_transform(nc, 3857)
+st_crs(nc.web_mercator)
+```
+
+##
+```{r}
+#Conversion from/to sp object
+nc.sp <- as(nc, "Spatial")
+class(nc.sp)
+nc.sf <- as(nc.sp, "sf")
+class(nc.sf)
+```
+
+## Geometrical operations
+
+```{r}
+#creating geometry set 1 with three polygons 
+b0 = st_polygon(list(rbind(c(-1,-1), c(1,-1), c(1,1), c(-1,1), c(-1,-1))))
+b1 = b0 + 2
+b2 = b0 + c(-0.2, 2)
+x = st_sfc(b0, b1, b2)
+#creating geometry set 2 with four polygons
+a0 = b0 * 0.8
+a1 = a0 * 0.5 + c(2, 0.7)
+a2 = a0 + 1
+a3 = b0 * 0.5 + c(2, -0.5)
+y = st_sfc(a0,a1,a2,a3)
+```
+
+##
+```{r, echo = FALSE}
+plot(x, border = 'red');
+plot(y, border = 'green', add = TRUE)
+```
+
+## Measuring
+```{r}
+#area of polygons
+st_area(x)
+#length of geometries
+st_length(st_sfc(st_linestring(rbind(c(0,0), c(1,1), c(1,2))), st_linestring
+                 (rbind(c(0,0), c(1,0)))))
+```
+
+##
+```{r}
+#shortest distance matrix between geometries
+st_distance(x,y)
+```
+
+
+
+## Test topology
+```{r}
+#check if geometries are topologically valid
+b1 = st_polygon(list(rbind(c(-1,-1), c(1,-1), c(1,1), c(0,-1), c(-1,-1))))
+
+```
+
+```{r, echo = FALSE}
+par(mfrow = c(1,2))
+plot(b0, main = "valid topology")
+plot(b1, main = "invalid topology")
+```
+
+##
+```{r}
+st_is_valid(st_sfc(b0, b1))
+```
+
+
+##
+```{r}
+#intersection between objects
+st_intersects(x,y)
+st_intersects(x,y, sparse = FALSE)
+```
+
+##
+###other operations:  
+- st_disjoint
+- st_touches
+- st_crosses
+- st_within
+- st_contains
+- st_overlaps
+- st_covers
+- st_subdivide # can be used to reduce computing time (see references^4)
+- ...
+
+## Return new geometries
+```{r}
+#union objects
+u = st_union(x)
+plot(u)
+```
+  
+
+##
+```{r}
+#buffer objects
+plot(st_buffer(u, 0.2)); plot(u, border = "red", add = TRUE)
+```
+
+##
+```{r}
+plot(st_convex_hull(u)); plot(u*0.99, border = "grey", add = TRUE)
+```
+
+##
+```{r}
+plot(x); plot(st_centroid(u), col = "red",  add = TRUE)
+```
+
+##
+```{r}
+plot(x); plot(y, add = TRUE);plot(st_intersection(st_union(x), st_union(y)), 
+                                  add = TRUE, col = "red")
+```
+
+##
+###other operations  
+- st_difference
+- st_segmentize
+- st_polygonize
+- ...
+
+
+# Manipulating simple features
+## 1 dplyr package - basics
+```{r}
+library(dplyr)
+```
+## 1 dplyr package - basics - grammar
+```{r}
+nc %>% select(NWBIR74) %>% head(2) 
+nc %>% as.data.frame %>% select(NWBIR74) %>% head(2) # drop geometry
+```
+
+## 2 Subset
+```{r}
+# subsetting feature sets using [] (... or dplyr)
+nc[1,"NWBIR74"] # Alternative: nc[1,11]
+nc[1, "NWBIR74", drop = TRUE] # drop geometry
+```
+## 2 Subset geometry + attribute
+```{r}
+Ashe = nc[nc$NAME == "Ashe",]
+class(Ashe)
+```
+
+## 2 Subset geometry + attribute
+```{r}
+nc[Ashe,] 
+nc[Ashe, op = st_touches] 
+
+nc %>% filter(lengths(st_touches(., Ashe)) > 0) 
+```
+
+## 2 Subset geometry + attribute
+```{r}
+# See effect of (two) coding alternatives above:
+plot(nc[1]) 
+plot(nc[Ashe, op = st_touches], col = 'grey', add = TRUE)
+```
+
+## 3 Aggregate
+```{r}
+# aggregating feature sets using aggregate()
+# Task: Compare the fraction of SID of 1974 of the counties that intersect with Ashe 
+# to the remaining ones?
+nc <- nc %>% mutate(frac74 = SID74 / BIR74) 
+(a <- aggregate(nc[,"frac74"], list(Ashe_nb = lengths(st_intersects(nc, Ashe)) > 0), mean))
+```
+
+##
+```{r}
+list(Ashe_nb = lengths(st_intersects(nc, Ashe)) > 0)
+```
+
+##
+```{r}
+plot(a[2], col = c(grey(.8), grey(.5)))
+plot(st_geometry(Ashe), border = '#ff8888', add = TRUE, lwd = 2)
+```
+
+## 4 Join
+```{r}
+# Joining two feature sets based on attributes or feature geometry (st_join(), merge())
+
+x = st_sf(a = 1:2, geom = st_sfc(st_point(c(0,0)), st_point(c(1,1)))) # create sf points
+y = data.frame(a = 2:3) # create data.frame
+merge(x, y)
+```
+
+##
+```{r}
+x = st_sf(a = 1:3, geom = st_sfc(st_point(c(1,1)), st_point(c(2,2)), st_point(c(3,3)))) # create three points
+y = st_buffer(x, 0.1) # create buffer
+st_join(x, y) # first argument delivers the attributes + the geometry
+```
+
+##
+```{r}
+st_join(y, x)
+
+st_join(y, x, join = st_covers) # matches for circles covering a point
+```
+
+
+# Plotting methods for sf and sfc objects
+## 1 Geometry only: sfc
+```{r}
+plot(st_geometry(nc))  # basic grammar; can be further annotated with colors, symbols, etc.
+```
+##
+```{r}
+plot(st_geometry(nc), col = sf.colors(12, categorical = TRUE), border = 'grey', axes = TRUE)
+plot(st_geometry(st_centroid(nc)), pch = 3, col = 'red', add = TRUE) # adding centroids to plot
+```
+
+## 2 Geometry with attributes: sf
+```{r}
+plot(nc, max.plot = 6) # maximum value of max.plot = 14 in this case
+```
+
+## Visualisation
+```{r}
+# 1 color keys # default color key is given
+# 2 class intervals
+plot(nc["AREA"], breaks = c(0,.05,.1,.15,.2,.25))
+```
+
+##
+```{r}
+plot(nc["AREA"], breaks = "quantile")
+# either a numeric vector with the actual breaks, or name of a method accepted by the style argument of classIntervals
+```
+
+## Visualisation
+```{r}
+# 3 display axes
+plot(nc["AREA"], key.pos = 1, axes = TRUE, key.size = lcm(1.3))
+# location and size of axes can be defined
+```
+
+##
+```{r}
+# 4 graticules
+library(maps)
+usa = st_as_sf(map('usa', plot = FALSE, fill = TRUE))
+laea = st_crs("+proj=laea +lat_0=30 +lon_0=-95") # Lambert equal area
+usa <- st_transform(usa, laea)
+g = st_graticule(usa)
+plot(st_geometry(g), axes = TRUE)
+```
+
+##
+```{r}
+plot(usa, graticule = TRUE, key.pos = NULL, axes = TRUE)
+```
+
+## Plotting with other packages
+```{r}
+# e.g. ggplot, mapview, tmap, grid
+library(rmapshaper) # can be used to simplify your map (reduce drawing time)
+# -> Grammar: ms_simplify()
+
+library(mapview)
+```
+
+##
+```{r}
+mapview(nc["BIR74"], col.regions = sf.colors(10))
+```
+
+
+## References
+- https://github.com/r-spatial/sf
+- https://www.r-consortium.org/blog/2017/01/03/simple-features-now-on-cran
+- https://seasmith.github.io/blog/simplify_your_map_to_reduce_drawing_time/
+- http://www.stevencanplan.com/2017/12/the-genius-of-using-st_subdivide-to-speed-up-postgis-intersection-comparisons/
